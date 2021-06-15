@@ -1,0 +1,59 @@
+---
+title: "Untitled"
+author: "Leiting Li"
+date: "6/15/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(readxl)
+d <- read_xlsx("./quinoa-KAUST-AHRD-ltli-20181109.xlsx",
+               skip = 2)
+```
+
+```{r}
+library(dplyr)
+GeneName <- d[,c(1,4)] %>% as.data.frame()
+colnames(GeneName) <- c("GID", "Description")
+GeneName[,1] <- sub("-RA", "", GeneName[,1])
+```
+
+```{r}
+library(stringr)
+go_table <- d[,c(1,6)] %>% as.data.frame() %>%
+  filter(str_detect(`Gene-Ontology-Term`, "GO:"))
+go_table[,1] <- sub("-RA", "", go_table[,1])
+go_table[,2] <- gsub(" ", "", go_table[,2])
+go_terms <- str_split(go_table[,2], ",")
+
+GO <- data.frame(
+  GID = rep(go_table[,1], lengths(go_terms)),
+  GO = unlist(go_terms),
+  EVIDENCE = "IEA"
+)
+```
+
+```{r}
+library(AnnotationForge)
+makeOrgPackage(
+  GeneName = GeneName,
+  GO = GO,
+  version = "0.2",
+  maintainer = "Leiting Li <ltli@psc.ac.cn>",
+  author = "Leiting Li <ltli@psc.ac.cn>",
+  outputDir = ".",
+  tax_id = "63459",
+  genus = "Chenopodium",
+  species = "quinoa",
+  goTable = "GO",
+  verbose = TRUE
+)
+```
+
+```{r}
+install.packages("./org.Cquinoa.eg.db/", type = "src", repos = NULL)
+```
